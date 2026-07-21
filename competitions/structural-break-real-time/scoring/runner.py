@@ -117,10 +117,7 @@ def run(
     data_directory_path: str,
     prediction_directory_path: str,
 ):
-    if CRUNCH_VERSION < "11.7.0":
-        context.log(f"detected crunch-cli version {CRUNCH_VERSION}, but runner requires version 11.7.0 or higher", error=True)
-        context.log(f"upgrade by running `pip install --upgrade crunch-cli` and restart your kernel (if you are on Colab/Jupyter)", error=True)
-        raise click.Abort()
+    _check_minimum_crunch_version(context)
 
     if context.force_first_train:
         context.execute(
@@ -257,6 +254,18 @@ def execute(
         "get_parallelism": get_parallelism,
         "infer": infer,
     }
+
+
+def _check_minimum_crunch_version(context: "RunnerContext"):
+    try:
+        from packaging.version import Version
+    except ImportError:
+        return  # ignore check, will fail later anyway
+
+    if Version(CRUNCH_VERSION) < Version("11.7.0"):
+        context.log(f"detected crunch-cli version {CRUNCH_VERSION}, but runner requires version 11.7.0 or higher", error=True)
+        context.log(f"upgrade by running `pip install --upgrade crunch-cli` and restart your kernel (if you are on Colab/Jupyter)", error=True)
+        raise click.Abort()
 
 
 def _load_train(data_directory_path: str):
