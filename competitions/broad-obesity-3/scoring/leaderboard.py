@@ -48,15 +48,8 @@ def _rank_peer_review(
 
     dataframe.index = range(1, len(dataframe.index) + 1)
 
-    if rank_pass == RankPass.PRE_DUPLICATE:
-        dataframe["rank_final"] = numpy.nan
-
-    elif rank_pass == RankPass.FINAL:
-        mask = dataframe["rewardable"] & ~dataframe["group"].duplicated(keep="first")
-        dataframe.loc[mask, "rank_final"] = _rankdata(dataframe.loc[mask, "rank_all"])
-
-    else:
-        raise ValueError(f"unknown rank pass: {rank_pass}")
+    mask = dataframe["rewardable"]
+    dataframe.loc[mask, "rank_final"] = _rankdata(dataframe.loc[mask, "rank_all"])
 
     return [
         RankedProject(
