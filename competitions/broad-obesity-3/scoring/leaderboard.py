@@ -15,33 +15,51 @@ def rank(
     rank_pass: RankPass,
 ):
     if target.name == "peer-review":
-        return _rank_peer_review(metrics[0], projects, rank_pass)
+        return _rank_peer_review(metrics, projects, rank_pass)
 
     print(f"unsupported target: {target.name}")
     return []
 
 
 def _rank_peer_review(
-    metric: Metric,
+    metrics: List[Metric],
     projects: List[RankableProject],
     rank_pass: RankPass,
 ):
+    (
+        average_score_metric,
+        review_1_score_metric,
+        review_2_score_metric,
+        review_3_score_metric,
+    ) = metrics
+    
     dataframe = pandas.DataFrame((
         {
             "project_id": project.id,
             "group": project.group,
             "rewardable": project.rewardable,
-            "metric": project.get_metric(metric.id).score,
+            "metric": project.get_metric(average_score_metric.id).score,
+            "review_3_score_count": sum([
+                project.get_metric(review_1_score_metric.id).score == 3.0,
+                project.get_metric(review_2_score_metric.id).score == 3.0,
+                project.get_metric(review_3_score_metric.id).score == 3.0,
+            ]),
         }
         for project in projects
     ))
 
-    dataframe["rank_all"] = _rankdata(-dataframe["metric"])
+    dataframe["metric_rank"] = _rankdata(-dataframe["metric"])
 
     dataframe.sort_values(
         by=[
-            "rank_all",
+            "metric_rank",
+            "review_3_score_count",
             "project_id",  # fallback if same `final_score`
+        ],
+        ascending=[
+            True,
+            False,
+            True,
         ],
         inplace=True,
     )
@@ -49,7 +67,7 @@ def _rank_peer_review(
     dataframe.index = range(1, len(dataframe.index) + 1)
 
     mask = dataframe["rewardable"]
-    dataframe.loc[mask, "rank_final"] = _rankdata(dataframe.loc[mask, "rank_all"])
+    dataframe.loc[mask, "rank_final"] = _rankdata(dataframe.loc[mask, "metric_rank"])
 
     return [
         RankedProject(
