@@ -4,6 +4,7 @@ import sys
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
 from enum import Enum, IntEnum
+from math import ceil
 from socket import IPPROTO_TCP, SOCK_STREAM, TCP_NODELAY, socket
 from tempfile import NamedTemporaryFile
 from threading import Thread
@@ -465,6 +466,9 @@ def _run_infer_with_server(
         except Exception as error:
             context.log(f"[debug] error in data thread: {error}")
 
+    log_head = ceil(1000 / parallelism)
+    log_tail = ceil(500 / parallelism)
+
     def do_execute(worker_index: int, output_file_path: Optional[str]):
         predicted_values: List[float] = []
         prediction_index: List[Tuple[int, int]] = []
@@ -483,6 +487,7 @@ def _run_infer_with_server(
                 },
                 trace=False,
                 install_data_fuse=False,
+                log_limits=(log_head, log_tail),
             )
 
             thread.join()
